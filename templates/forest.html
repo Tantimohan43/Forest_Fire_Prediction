@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Forest Fire Prevention</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="./static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="./static/css2/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link rel="stylesheet" href="style.css">
+  
+  <style>
+    /* Set the map's dimensions */
+    #map {
+      height: 400px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+
+  <div class="section no-pad-bot" id="index-banner">
+    <div class="container">
+      <br><br>
+      <h1 class="header center orange-text">Forest Fire Prevention</h1>
+      <div class="row center">
+        <h5 class="header col s12 light">Predict the probability of Forest-Fire Occurrence</h5>
+      </div>
+
+               <!-- Weather Data -->
+      <div>
+        <h4>Weather Data</h4>
+        <p>Temperature: <span id="temperature">{{ temp }}°C</span></p>
+        <p>Oxygen Level: <span id="oxygen">{{ oxygen }}%</span></p>
+        <p>Humidity: <span id="humidity">{{ humidity }}%</span></p>
+      </div>
+
+      <!-- Forest Fire Prediction Form -->
+      <div class="row">
+        <form action='/predict' method="post" class="col s12">
+          <div class="row">
+            <div class="input-field col s4">
+              <label for="first_name">Temperature</label>
+              <input placeholder=" " name="Temperature" id="first_name" type="text" class="validate">
+            </div>
+            <div class="input-field col s4">
+              <label for="last_name">Oxygen </label>
+              <input id="last_name" name="Oxygen" placeholder="  " type="text" class="validate">
+            </div>
+            <div class="input-field col s4">
+              <label for="_name">Humidity</label>
+              <input id="_name" name="Humidity" placeholder=" " type="text" class="validate">
+            </div>
+          </div>
+          <div class="row center">
+            <button type="submit" class="btn-large waves-effect waves-light orange">Predict Probability</button>
+          </div>
+        </form>
+        <br><h4 align="center"><strong>{{ pred }}</strong></h4>
+      </div>
+
+      <br>
+      <h4>Latitude and Longitude</h4>
+      <div class="wrap">
+        <form action="" class="form">
+          <input type="text" id="latitude" placeholder="latitude" value="{{ latitude }}">
+          <input type="text" id="longitude" placeholder="longitude" value="{{ longitude }}">
+        </form>
+        <!-- Include the map content from map.html -->
+        {% include 'map.html' %}
+      </div>
+      <br>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="../static/js/materialize.js"></script>
+  <script src="../static/js/init.js"></script>
+  <script src="../static/js/script.js"></script>
+
+  <!-- Map Initialization -->
+  
+  <script>
+    function sendLocationToBackend() {
+      var latitude = $('#latitude').val();
+      var longitude = $('#longitude').val();
+
+      $.ajax({
+        type: 'POST',
+        url: '/update_location',
+        data: {
+          latitude: latitude,
+          longitude: longitude
+        },
+        success: function(response) {
+          console.log('Location updated successfully:', response);
+          // Update weather data on frontend
+          $('#temperature').text('Temperature: ' + response.temp + '°C');
+          $('#oxygen').text('Oxygen Level: ' + response.oxygen + '%');
+          $('#humidity').text('Humidity: ' + response.humidity + '%');
+        },
+        error: function(error) {
+          console.error('Error updating location:', error);
+        }
+      });
+    }
+
+    // Call the function on map click
+    map.on('click', (event) => {
+      if (marker !== null) {
+        map.removeLayer(marker);
+      }
+
+      const latitude = event.latlng.lat;
+      const longitude = event.latlng.lng;
+
+      marker = L.marker([latitude, longitude]).addTo(map);
+
+      document.getElementById('latitude').value = latitude;
+      document.getElementById('longitude').value = longitude;
+
+      // Call the function to send location data to backend
+      sendLocationToBackend();
+    });
+
+    // Call the function on button click
+    $('#send_location').click(function() {
+      sendLocationToBackend();
+    });
+  </script>
+
+
+
+<script>
+  document.getElementById('predictionForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      var temperature = document.getElementById('temperature').textContent;
+      var oxygen = document.getElementById('oxygen').textContent;
+      var humidity = document.getElementById('humidity').textContent;
+
+      var formData = new FormData();
+      formData.append('Temperature', temperature);
+      formData.append('Oxygen', oxygen);
+      formData.append('Humidity', humidity);
+
+      fetch('/predict', {
+          method: 'POST',
+          body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+          // Handle the prediction result here
+          console.log(data);
+      })
+      .catch(error => {
+          console.error('Error:', error);
+      });
+  });
+</script>
+</body>
+</html>
